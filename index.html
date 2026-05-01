@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Color Flash - Pro Edition</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg: #F0F2F5;
+            --card: #FFFFFF;
+            --primary: #FFD600; 
+            --secondary: #A084CF; /* Purple from your timer image */
+            --text-main: #1A1A1B;
+            --radius: 32px;
+            --border: 4px solid #000;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        .screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px;
+        }
+
+        .hidden { opacity: 0; pointer-events: none; transform: scale(0.9); }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 2rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 12px 0 #000;
+            border: var(--border);
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+
+        h1 { font-size: 2.5rem; margin: 0 0 1rem; font-weight: 900; letter-spacing: -2px; line-height: 1; text-align: center;}
+
+        /* Language Toggle */
+        .lang-switch {
+            position: fixed; top: 20px; right: 20px;
+            z-index: 100; display: flex; gap: 8px;
+        }
+        .btn-mini {
+            border: 2px solid #000; background: #fff;
+            padding: 8px 12px; border-radius: 12px; font-weight: bold; cursor: pointer;
+        }
+        .btn-mini.active { background: #000; color: #fff; }
+
+        /* Speed Slider Styling */
+        .slider-container { margin: 20px 0; }
+        .slider-meta { display: flex; justify-content: space-between; font-weight: 800; font-size: 0.9rem; margin-bottom: 8px;}
+        input[type=range] {
+            width: 100%; appearance: none; background: #ddd; height: 14px; border-radius: 10px; border: 2px solid #000;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none; width: 28px; height: 28px; background: var(--primary); border: 3px solid #000; border-radius: 50%; cursor: pointer;
+        }
+
+        /* Color Grid */
+        .color-grid {
+            display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin: 10px 0;
+        }
+        .color-box {
+            aspect-ratio: 1; border-radius: 6px; border: 2px solid transparent; cursor: pointer;
+        }
+        .color-box.selected { border-color: #000; transform: scale(1.1); box-shadow: 0 4px 0 #000; z-index: 2;}
+
+        /* Timer Presets */
+        .timer-presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+        .chip {
+            padding: 10px 14px; border: 2px solid #000; border-radius: 16px;
+            font-weight: bold; cursor: pointer; background: #fff;
+        }
+        .chip.active { background: var(--primary); box-shadow: 0 4px 0 #000; transform: translateY(-2px); }
+        .custom-timer-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .input-pill { width: 70px; padding: 10px; border: 2px solid #000; border-radius: 12px; text-align: center; font-weight: bold; }
+
+        /* Start Button */
+        .btn-big {
+            width: 100%; padding: 20px; border-radius: 24px; border: 4px solid #000;
+            font-size: 1.5rem; font-weight: 900; cursor: pointer;
+            background: var(--primary); box-shadow: 0 8px 0 #000; margin-top: 10px;
+        }
+        .btn-big:active { transform: translateY(4px); box-shadow: 0 4px 0 #000; }
+
+        /* Circular Timer Component */
+        .timer-wrapper { position: relative; display: flex; align-items: center; justify-content: center; }
+        .timer-svg { transform: rotate(-90deg); }
+        .timer-bg { fill: rgba(255,255,255,0.2); stroke: rgba(0,0,0,0.1); stroke-width: 8; }
+        .timer-progress { 
+            fill: none; stroke: var(--secondary); stroke-width: 8; 
+            stroke-linecap: round; transition: stroke-dashoffset 0.1s linear; 
+        }
+        .timer-text { 
+            position: absolute; font-weight: 800; color: #fff; 
+            text-shadow: 2px 2px 0 #000; font-family: monospace;
+        }
+
+        /* Play Screen Layout */
+        #play-screen { z-index: 50; transition: background-color 0.4s; }
+        .back-btn {
+            position: absolute; top: 30px; left: 30px; background: #fff; 
+            border: 3px solid #000; border-radius: 50%; width: 54px; height: 54px; 
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .total-timer-container {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+        }
+        .total-label { color: #fff; font-weight: 900; text-transform: uppercase; font-size: 0.7rem; text-shadow: 1px 1px 0 #000; }
+    </style>
+</head>
+<body>
+
+    <div class="lang-switch">
+        <button class="btn-mini active" onclick="setLang('en')">EN</button>
+        <button class="btn-mini" onclick="setLang('zh')">繁中</button>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="setup-screen" class="screen">
+        <div class="card">
+            <h1 id="t-title">Flash!</h1>
+            
+            <div class="slider-container">
+                <div class="slider-meta">
+                    <span id="t-speed-label">Flash Speed</span>
+                    <span id="speed-display">1.0x</span>
+                </div>
+                <input type="range" id="speed-slider" min="0" max="200" value="100">
+                <div class="slider-meta" style="margin-top: 5px; font-size: 0.7rem; opacity: 0.6;">
+                    <span>0.1x</span>
+                    <span>Standard</span>
+                    <span>8.0x</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div style="font-weight: 800; margin-bottom: 5px;" id="t-timer-label">Game Duration</div>
+                <div class="timer-presets">
+                    <button class="chip active" data-sec="15">15s</button>
+                    <button class="chip" data-sec="30">30s</button>
+                    <button class="chip" data-sec="45">45s</button>
+                    <button class="chip" data-sec="60">60s</button>
+                    <button class="chip" data-sec="custom">Custom</button>
+                </div>
+                <div id="custom-inputs" class="custom-timer-row" style="display: none;">
+                    <input type="number" id="min-in" class="input-pill" placeholder="Min">
+                    <input type="number" id="sec-in" class="input-pill" placeholder="Sec">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div style="font-weight: 800; margin: 15px 0 5px;" id="t-color-label">Palette</div>
+                <div id="color-grid" class="color-grid"></div>
+            </div>
+
+            <button id="play-btn" class="btn-big">PLAY</button>
+        </div>
+    </div>
+
+    <!-- Play Screen -->
+    <div id="play-screen" class="screen hidden">
+        <button class="back-btn" onclick="stopGame()"><i data-lucide="x"></i></button>
+        
+        <!-- Main Color Timer (Large) -->
+        <div class="timer-wrapper">
+            <svg class="timer-svg" width="260" height="260">
+                <circle class="timer-bg" cx="130" cy="130" r="110"></circle>
+                <circle id="color-progress" class="timer-progress" cx="130" cy="130" r="110" stroke-dasharray="691" stroke-dashoffset="0"></circle>
+            </svg>
+            <div id="color-timer-text" class="timer-text" style="font-size: 3rem;">04.0</div>
+        </div>
+
+        <!-- Total Game Timer (Bottom) -->
+        <div class="total-timer-container">
+            <div class="total-label" id="t-total-remain">Total Remaining</div>
+            <div class="timer-wrapper">
+                <svg class="timer-svg" width="100" height="100">
+                    <circle class="timer-bg" cx="50" cy="50" r="42" style="stroke-width: 6;"></circle>
+                    <circle id="total-progress" class="timer-progress" cx="50" cy="50" r="42" stroke-dasharray="264" stroke-dashoffset="0" style="stroke-width: 6;"></circle>
+                </svg>
+                <div id="total-timer-text" class="timer-text" style="font-size: 1rem;">00:15</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const i18n = {
+            en: { title: "Color Flash", speed: "Speed Multiplier", timer: "Game Duration", color: "Select Palette", play: "START", total: "Total Remaining" },
+            zh: { title: "閃爍挑戰", speed: "速度倍率", timer: "總時長", color: "選擇色板", play: "開始", total: "剩餘總時間" }
+        };
+
+        let currentLang = 'en';
+        function setLang(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.btn-mini').forEach(b => b.classList.toggle('active', b.innerText.toLowerCase().includes(lang)));
+            document.getElementById('t-title').innerText = i18n[lang].title;
+            document.getElementById('t-speed-label').innerText = i18n[lang].speed;
+            document.getElementById('t-timer-label').innerText = i18n[lang].timer;
+            document.getElementById('t-color-label').innerText = i18n[lang].color;
+            document.getElementById('play-btn').innerText = i18n[lang].play;
+            document.getElementById('t-total-remain').innerText = i18n[lang].total;
+        }
+
+        // --- Speed Logic ---
+        const speedSlider = document.getElementById('speed-slider');
+        const speedDisplay = document.getElementById('speed-display');
+        let speedMultiplier = 1.0;
+
+        speedSlider.oninput = () => {
+            const val = parseInt(speedSlider.value);
+            // 0-100: 0.1x to 1.0x | 100-200: 1.0x to 8.0x
+            if (val <= 100) {
+                speedMultiplier = (0.1 + (val / 100) * 0.9).toFixed(2);
+            } else {
+                speedMultiplier = (1.0 + ((val - 100) / 100) * 7.0).toFixed(1);
+            }
+            speedDisplay.innerText = speedMultiplier + 'x';
+        };
+
+        // --- Color Grid ---
+        const colorGrid = document.getElementById('color-grid');
+        let selectedColors = [];
+        const hues = [0, 30, 50, 100, 160, 190, 230, 280, 320, 0];
+        for (let r = 0; r < 10; r++) {
+            for (let c = 0; c < 9; c++) {
+                const color = `hsl(${hues[r]}, ${r === 9 ? 0 : 75}%, ${15 + c * 8}%)`;
+                const div = document.createElement('div');
+                div.className = 'color-box';
+                div.style.backgroundColor = color;
+                if (c === 4) { div.classList.add('selected'); selectedColors.push(color); }
+                div.onclick = () => {
+                    div.classList.toggle('selected');
+                    selectedColors = Array.from(document.querySelectorAll('.color-box.selected')).map(b => b.style.backgroundColor);
+                };
+                colorGrid.appendChild(div);
+            }
+        }
+
+        // --- Timer Handling ---
+        let totalDuration = 15;
+        document.querySelectorAll('.chip').forEach(chip => {
+            chip.onclick = () => {
+                document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                totalDuration = chip.dataset.sec;
+                document.getElementById('custom-inputs').style.display = totalDuration === 'custom' ? 'flex' : 'none';
+            };
+        });
+
+        // --- Game Logic ---
+        let gameActive = false;
+        let mainInterval;
+        let startTime, colorStartTime, currentColorIdx = 0;
+        let totalMs = 0;
+        let intervalMs = 4000;
+
+        function startGame() {
+            if (selectedColors.length === 0) return alert("Select colors!");
+            
+            if (totalDuration === 'custom') {
+                const m = parseInt(document.getElementById('min-in').value) || 0;
+                const s = parseInt(document.getElementById('sec-in').value) || 0;
+                totalMs = (m * 60 + s) * 1000;
+            } else {
+                totalMs = parseInt(totalDuration) * 1000;
+            }
+            if (totalMs <= 0) return alert("Invalid time!");
+
+            intervalMs = 4000 / parseFloat(speedMultiplier);
+            gameActive = true;
+            startTime = Date.now();
+            colorStartTime = Date.now();
+            currentColorIdx = 0;
+
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('play-screen').classList.remove('hidden');
+            
+            runFrame();
+        }
+
+        function runFrame() {
+            if (!gameActive) return;
+
+            const now = Date.now();
+            const totalElapsed = now - startTime;
+            const colorElapsed = now - colorStartTime;
+
+            // Update Total Timer
+            const totalRemaining = Math.max(0, totalMs - totalElapsed);
+            const totalPercent = (totalRemaining / totalMs) * 264;
+            document.getElementById('total-progress').style.strokeDashoffset = 264 - totalPercent;
+            
+            const trSec = Math.ceil(totalRemaining / 1000);
+            document.getElementById('total-timer-text').innerText = 
+                `${String(Math.floor(trSec/60)).padStart(2,'0')}:${String(trSec%60).padStart(2,'0')}`;
+
+            // Update Color Timer
+            if (colorElapsed >= intervalMs) {
+                colorStartTime = now;
+                currentColorIdx = (currentColorIdx + 1) % selectedColors.length;
+            }
+            
+            const colorRemaining = Math.max(0, intervalMs - colorElapsed);
+            const colorPercent = (colorRemaining / intervalMs) * 691;
+            document.getElementById('color-progress').style.strokeDashoffset = 691 - colorPercent;
+            document.getElementById('color-timer-text').innerText = (colorRemaining / 1000).toFixed(1);
+            document.getElementById('play-screen').style.backgroundColor = selectedColors[currentColorIdx];
+
+            if (totalElapsed >= totalMs) {
+                stopGame();
+            } else {
+                requestAnimationFrame(runFrame);
+            }
+        }
+
+        function stopGame() {
+            gameActive = false;
+            document.getElementById('setup-screen').classList.remove('hidden');
+            document.getElementById('play-screen').classList.add('hidden');
+        }
+
+        document.getElementById('play-btn').onclick = startGame;
+        lucide.createIcons();
+    </script>
+</body>
+</html>
