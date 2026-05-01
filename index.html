@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Color Flash - Pro Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Flash! - Pro Edition</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
             --bg: #F0F2F5;
             --card: #FFFFFF;
             --primary: #FFD600; 
-            --secondary: #A084CF; /* Purple from your timer image */
+            --secondary: #A084CF;
             --text-main: #1A1A1B;
             --radius: 32px;
             --border: 4px solid #000;
@@ -24,7 +24,7 @@
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: var(--bg);
             color: var(--text-main);
-            overflow: hidden;
+            overflow: hidden; /* Prevent body scroll, handle scroll in containers */
         }
 
         .screen {
@@ -33,121 +33,126 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             padding: 20px;
+            overflow-y: auto;
         }
 
-        .hidden { opacity: 0; pointer-events: none; transform: scale(0.9); }
+        .hidden { opacity: 0; pointer-events: none; transform: scale(0.95); z-index: -1; }
+
+        /* Unified Header */
+        .header-bar {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0 20px 0;
+            z-index: 100;
+        }
+
+        h1 { font-size: 2.5rem; margin: 0; font-weight: 900; letter-spacing: -1.5px; }
+
+        #setup-screen { justify-content: flex-start; padding-bottom: 120px; }
 
         .card {
             background: var(--card);
             border-radius: var(--radius);
-            padding: 2rem;
+            padding: 1.5rem;
             width: 100%;
             max-width: 500px;
-            box-shadow: 0 12px 0 #000;
+            box-shadow: 0 10px 0 #000;
             border: var(--border);
-            max-height: 95vh;
-            overflow-y: auto;
         }
-
-        h1 { font-size: 2.5rem; margin: 0 0 1rem; font-weight: 900; letter-spacing: -2px; line-height: 1; text-align: center;}
 
         /* Language Toggle */
-        .lang-switch {
-            position: fixed; top: 20px; right: 20px;
-            z-index: 100; display: flex; gap: 8px;
-        }
+        .lang-switch { display: flex; gap: 6px; }
         .btn-mini {
             border: 2px solid #000; background: #fff;
-            padding: 8px 12px; border-radius: 12px; font-weight: bold; cursor: pointer;
+            padding: 8px 12px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.85rem;
+            transition: all 0.2s;
         }
         .btn-mini.active { background: #000; color: #fff; }
+        .btn-mini:active { transform: translateY(2px); }
 
-        /* Speed Slider Styling */
-        .slider-container { margin: 20px 0; }
+        /* Controls */
+        .control-group { margin-top: 20px; }
+        .slider-container { margin: 15px 0; }
         .slider-meta { display: flex; justify-content: space-between; font-weight: 800; font-size: 0.9rem; margin-bottom: 8px;}
-        input[type=range] {
-            width: 100%; appearance: none; background: #ddd; height: 14px; border-radius: 10px; border: 2px solid #000;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            appearance: none; width: 28px; height: 28px; background: var(--primary); border: 3px solid #000; border-radius: 50%; cursor: pointer;
-        }
+        input[type=range] { width: 100%; appearance: none; background: #ddd; height: 14px; border-radius: 10px; border: 2px solid #000; }
+        input[type=range]::-webkit-slider-thumb { appearance: none; width: 28px; height: 28px; background: var(--primary); border: 3px solid #000; border-radius: 50%; cursor: pointer; }
 
-        /* Color Grid */
-        .color-grid {
-            display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin: 10px 0;
-        }
-        .color-box {
-            aspect-ratio: 1; border-radius: 6px; border: 2px solid transparent; cursor: pointer;
-        }
-        .color-box.selected { border-color: #000; transform: scale(1.1); box-shadow: 0 4px 0 #000; z-index: 2;}
+        .color-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin: 10px 0; }
+        .color-box { aspect-ratio: 1; border-radius: 6px; border: 2px solid transparent; cursor: pointer; transition: transform 0.1s; }
+        .color-box:active { transform: scale(0.9); }
+        .color-box.selected { border-color: #000; transform: scale(1.1); box-shadow: 0 3px 0 #000; z-index: 2;}
 
-        /* Timer Presets */
         .timer-presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
-        .chip {
-            padding: 10px 14px; border: 2px solid #000; border-radius: 16px;
-            font-weight: bold; cursor: pointer; background: #fff;
-        }
+        .chip { padding: 10px 16px; border: 2px solid #000; border-radius: 16px; font-weight: bold; background: #fff; cursor: pointer; transition: all 0.2s; }
         .chip.active { background: var(--primary); box-shadow: 0 4px 0 #000; transform: translateY(-2px); }
-        .custom-timer-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-        .input-pill { width: 70px; padding: 10px; border: 2px solid #000; border-radius: 12px; text-align: center; font-weight: bold; }
+        .chip:active { transform: translateY(2px); box-shadow: none; }
 
-        /* Start Button */
+        /* Fixed Action Buttons */
         .btn-big {
-            width: 100%; padding: 20px; border-radius: 24px; border: 4px solid #000;
-            font-size: 1.5rem; font-weight: 900; cursor: pointer;
-            background: var(--primary); box-shadow: 0 8px 0 #000; margin-top: 10px;
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 460px;
+            padding: 18px; border-radius: 20px; border: 4px solid #000;
+            font-size: 1.4rem; font-weight: 900; background: var(--primary); 
+            box-shadow: 0 8px 0 #000; z-index: 200; cursor: pointer; transition: all 0.1s;
         }
-        .btn-big:active { transform: translateY(4px); box-shadow: 0 4px 0 #000; }
+        .btn-big:active { transform: translateX(-50%) translateY(4px); box-shadow: 0 4px 0 #000; }
 
-        /* Circular Timer Component */
-        .timer-wrapper { position: relative; display: flex; align-items: center; justify-content: center; }
+        /* End Screen Components */
+        #end-screen { 
+            background: rgba(26, 26, 27, 0.95); /* Darker, less transparent background */
+            color: white; 
+            justify-content: center; 
+            backdrop-filter: blur(8px); 
+            z-index: 300; 
+        }
+        .end-container { text-align: center; display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 400px; }
+        .done-text { font-size: 4.5rem; font-weight: 900; text-shadow: 4px 4px 0 var(--secondary); margin-bottom: 20px; animation: pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        
+        .secondary-btn {
+            background: transparent; color: white; padding: 16px; border-radius: 18px; 
+            border: 4px solid white; font-weight: 800; font-size: 1.1rem; width: 100%;
+            cursor: pointer; transition: all 0.1s;
+        }
+        .secondary-btn:active { transform: translateY(4px); background: rgba(255,255,255,0.1); }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            80% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Play Screen */
+        #play-screen { justify-content: center; z-index: 50; transition: background-color 0.3s linear; }
+        .timer-wrapper { position: relative; display: flex; align-items: center; justify-content: center; margin: auto; }
         .timer-svg { transform: rotate(-90deg); }
-        .timer-bg { fill: rgba(255,255,255,0.2); stroke: rgba(0,0,0,0.1); stroke-width: 8; }
-        .timer-progress { 
-            fill: none; stroke: var(--secondary); stroke-width: 8; 
-            stroke-linecap: round; transition: stroke-dashoffset 0.1s linear; 
-        }
-        .timer-text { 
-            position: absolute; font-weight: 800; color: #fff; 
-            text-shadow: 2px 2px 0 #000; font-family: monospace;
-        }
-
-        /* Play Screen Layout */
-        #play-screen { z-index: 50; transition: background-color 0.4s; }
-        .back-btn {
-            position: absolute; top: 30px; left: 30px; background: #fff; 
-            border: 3px solid #000; border-radius: 50%; width: 54px; height: 54px; 
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-        }
-        .total-timer-container {
-            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-            display: flex; flex-direction: column; align-items: center; gap: 5px;
-        }
-        .total-label { color: #fff; font-weight: 900; text-transform: uppercase; font-size: 0.7rem; text-shadow: 1px 1px 0 #000; }
+        .timer-progress { fill: none; stroke: var(--secondary); stroke-width: 8; stroke-linecap: round; }
+        .timer-text { position: absolute; font-weight: 800; color: #fff; text-shadow: 2px 2px 0 #000; font-family: monospace; }
+        .back-btn { position: absolute; top: 20px; left: 20px; background: #fff; border: 3px solid #000; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; z-index: 110; cursor: pointer; color: black; }
+        .back-btn:active { transform: scale(0.9); }
     </style>
 </head>
 <body>
 
-    <div class="lang-switch">
-        <button class="btn-mini active" onclick="setLang('en')">EN</button>
-        <button class="btn-mini" onclick="setLang('zh')">繁中</button>
-    </div>
-
-    <!-- Start Screen -->
+    <!-- Setup Screen -->
     <div id="setup-screen" class="screen">
-        <div class="card">
+        <div class="header-bar">
             <h1 id="t-title">Flash!</h1>
-            
+            <div class="lang-switch">
+                <button class="btn-mini active" onclick="setLang('en')">EN</button>
+                <button class="btn-mini" onclick="setLang('zh')">繁中</button>
+            </div>
+        </div>
+
+        <div class="card">
             <div class="slider-container">
-                <div class="slider-meta">
-                    <span id="t-speed-label">Flash Speed</span>
-                    <span id="speed-display">1.0x</span>
-                </div>
+                <div class="slider-meta"><span id="t-speed-label">Flash Speed</span><span id="speed-display">1.0x</span></div>
                 <input type="range" id="speed-slider" min="0" max="200" value="100">
-                <div class="slider-meta" style="margin-top: 5px; font-size: 0.7rem; opacity: 0.6;">
+                <div class="slider-meta" style="margin-top: 5px; font-size: 0.75rem; opacity: 0.6;">
                     <span>0.1x</span>
                     <span>Standard</span>
                     <span>8.0x</span>
@@ -155,90 +160,91 @@
             </div>
 
             <div class="control-group">
-                <div style="font-weight: 800; margin-bottom: 5px;" id="t-timer-label">Game Duration</div>
+                <div style="font-weight: 800; margin-bottom: 8px;" id="t-timer-label">Game Duration</div>
                 <div class="timer-presets">
                     <button class="chip active" data-sec="15">15s</button>
                     <button class="chip" data-sec="30">30s</button>
-                    <button class="chip" data-sec="45">45s</button>
                     <button class="chip" data-sec="60">60s</button>
-                    <button class="chip" data-sec="custom">Custom</button>
+                    <button class="chip" data-sec="custom" id="t-custom">Custom</button>
                 </div>
-                <div id="custom-inputs" class="custom-timer-row" style="display: none;">
-                    <input type="number" id="min-in" class="input-pill" placeholder="Min">
-                    <input type="number" id="sec-in" class="input-pill" placeholder="Sec">
+                <div id="custom-inputs" style="display:none; margin-top:10px; gap: 10px; align-items: center;">
+                    <input type="number" id="min-in" style="width:70px; padding:10px; border:2px solid #000; border-radius:12px; font-weight: bold; text-align: center;" placeholder="Min">
+                    <input type="number" id="sec-in" style="width:70px; padding:10px; border:2px solid #000; border-radius:12px; font-weight: bold; text-align: center;" placeholder="Sec">
                 </div>
             </div>
 
             <div class="control-group">
-                <div style="font-weight: 800; margin: 15px 0 5px;" id="t-color-label">Palette</div>
+                <div style="font-weight: 800; margin: 15px 0 8px;" id="t-color-label">Palette</div>
                 <div id="color-grid" class="color-grid"></div>
             </div>
-
-            <button id="play-btn" class="btn-big">PLAY</button>
         </div>
+
+        <button id="play-btn" class="btn-big">PLAY</button>
     </div>
 
     <!-- Play Screen -->
     <div id="play-screen" class="screen hidden">
         <button class="back-btn" onclick="stopGame()"><i data-lucide="x"></i></button>
         
-        <!-- Main Color Timer (Large) -->
         <div class="timer-wrapper">
-            <svg class="timer-svg" width="260" height="260">
-                <circle class="timer-bg" cx="130" cy="130" r="110"></circle>
-                <circle id="color-progress" class="timer-progress" cx="130" cy="130" r="110" stroke-dasharray="691" stroke-dashoffset="0"></circle>
+            <svg class="timer-svg" width="240" height="240">
+                <circle cx="120" cy="120" r="100" style="fill:rgba(255,255,255,0.15); stroke:rgba(0,0,0,0.2); stroke-width:8;"></circle>
+                <circle id="color-progress" class="timer-progress" cx="120" cy="120" r="100" stroke-dasharray="628" stroke-dashoffset="0"></circle>
             </svg>
-            <div id="color-timer-text" class="timer-text" style="font-size: 3rem;">04.0</div>
+            <div id="color-timer-text" class="timer-text" style="font-size: 3.5rem;">0.0</div>
         </div>
+        
+        <div style="position: absolute; bottom: 50px; text-align: center; width: 100%;">
+            <div id="t-total-remain" style="color:#fff; font-weight:900; font-size:0.85rem; text-transform: uppercase; letter-spacing: 1px; text-shadow:1px 1px 0 #000; margin-bottom: 5px;">Total Remaining</div>
+            <div id="total-timer-text" style="color:#fff; font-size:1.8rem; font-weight:900; text-shadow:2px 2px 0 #000;">00:00</div>
+        </div>
+    </div>
 
-        <!-- Total Game Timer (Bottom) -->
-        <div class="total-timer-container">
-            <div class="total-label" id="t-total-remain">Total Remaining</div>
-            <div class="timer-wrapper">
-                <svg class="timer-svg" width="100" height="100">
-                    <circle class="timer-bg" cx="50" cy="50" r="42" style="stroke-width: 6;"></circle>
-                    <circle id="total-progress" class="timer-progress" cx="50" cy="50" r="42" stroke-dasharray="264" stroke-dashoffset="0" style="stroke-width: 6;"></circle>
-                </svg>
-                <div id="total-timer-text" class="timer-text" style="font-size: 1rem;">00:15</div>
-            </div>
+    <!-- End Screen -->
+    <div id="end-screen" class="screen hidden">
+        <div class="end-container">
+            <div class="done-text" id="t-done">Done!</div>
+            <!-- Start Again button uses fixed position logic relative to its container -->
+            <button class="btn-big" style="position:static; width:100%; transform:none; max-width: 100%;" id="t-again" onclick="restartGame()">Start Again</button>
+            <button class="secondary-btn" id="t-back" onclick="goToSettings()">Back to Settings</button>
         </div>
     </div>
 
     <script>
         const i18n = {
-            en: { title: "Color Flash", speed: "Speed Multiplier", timer: "Game Duration", color: "Select Palette", play: "START", total: "Total Remaining" },
-            zh: { title: "閃爍挑戰", speed: "速度倍率", timer: "總時長", color: "選擇色板", play: "開始", total: "剩餘總時間" }
+            en: { title: "Flash!", speed: "Flash Speed", timer: "Game Duration", custom: "Custom", color: "Palette", play: "PLAY", total: "Total Remaining", done: "Done!", again: "Start Again", back: "Back to Settings" },
+            zh: { title: "閃爍!", speed: "閃爍速度", timer: "遊戲時長", custom: "自訂", color: "選擇色板", play: "開始", total: "剩餘總時間", done: "完成！", again: "再玩一次", back: "返回設置" }
         };
 
         let currentLang = 'en';
         function setLang(lang) {
             currentLang = lang;
-            document.querySelectorAll('.btn-mini').forEach(b => b.classList.toggle('active', b.innerText.toLowerCase().includes(lang)));
+            document.querySelectorAll('.btn-mini').forEach(b => b.classList.toggle('active', b.innerText.toLowerCase().includes(lang === 'en' ? 'en' : '繁中')));
             document.getElementById('t-title').innerText = i18n[lang].title;
             document.getElementById('t-speed-label').innerText = i18n[lang].speed;
             document.getElementById('t-timer-label').innerText = i18n[lang].timer;
+            document.getElementById('t-custom').innerText = i18n[lang].custom;
             document.getElementById('t-color-label').innerText = i18n[lang].color;
             document.getElementById('play-btn').innerText = i18n[lang].play;
             document.getElementById('t-total-remain').innerText = i18n[lang].total;
+            document.getElementById('t-done').innerText = i18n[lang].done;
+            document.getElementById('t-again').innerText = i18n[lang].again;
+            document.getElementById('t-back').innerText = i18n[lang].back;
         }
 
-        // --- Speed Logic ---
+        // Speed Logic
         const speedSlider = document.getElementById('speed-slider');
         const speedDisplay = document.getElementById('speed-display');
         let speedMultiplier = 1.0;
 
         speedSlider.oninput = () => {
             const val = parseInt(speedSlider.value);
-            // 0-100: 0.1x to 1.0x | 100-200: 1.0x to 8.0x
-            if (val <= 100) {
-                speedMultiplier = (0.1 + (val / 100) * 0.9).toFixed(2);
-            } else {
-                speedMultiplier = (1.0 + ((val - 100) / 100) * 7.0).toFixed(1);
-            }
+            if (val <= 100) { speedMultiplier = (0.1 + (val / 100) * 0.9).toFixed(2); } 
+            else { speedMultiplier = (1.0 + ((val - 100) / 100) * 7.0).toFixed(1); }
             speedDisplay.innerText = speedMultiplier + 'x';
         };
 
-        // --- Color Grid ---
+        // Color Grid
         const colorGrid = document.getElementById('color-grid');
         let selectedColors = [];
         const hues = [0, 30, 50, 100, 160, 190, 230, 280, 320, 0];
@@ -257,7 +263,7 @@
             }
         }
 
-        // --- Timer Handling ---
+        // Timer Handling
         let totalDuration = 15;
         document.querySelectorAll('.chip').forEach(chip => {
             chip.onclick = () => {
@@ -268,15 +274,15 @@
             };
         });
 
-        // --- Game Logic ---
+        // Game Logic State
         let gameActive = false;
-        let mainInterval;
+        let animationFrameId;
         let startTime, colorStartTime, currentColorIdx = 0;
         let totalMs = 0;
         let intervalMs = 4000;
 
         function startGame() {
-            if (selectedColors.length === 0) return alert("Select colors!");
+            if (selectedColors.length === 0) return alert(currentLang === 'en' ? "Please select at least one color!" : "請至少選擇一種顏色！");
             
             if (totalDuration === 'custom') {
                 const m = parseInt(document.getElementById('min-in').value) || 0;
@@ -285,7 +291,7 @@
             } else {
                 totalMs = parseInt(totalDuration) * 1000;
             }
-            if (totalMs <= 0) return alert("Invalid time!");
+            if (totalMs <= 0) return alert(currentLang === 'en' ? "Invalid time!" : "時間無效！");
 
             intervalMs = 4000 / parseFloat(speedMultiplier);
             gameActive = true;
@@ -294,7 +300,11 @@
             currentColorIdx = 0;
 
             document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('end-screen').classList.add('hidden');
             document.getElementById('play-screen').classList.remove('hidden');
+            
+            // Set initial color immediately
+            document.getElementById('play-screen').style.backgroundColor = selectedColors[0];
             
             runFrame();
         }
@@ -306,38 +316,63 @@
             const totalElapsed = now - startTime;
             const colorElapsed = now - colorStartTime;
 
-            // Update Total Timer
+            // 1. Check if game is over
+            if (totalElapsed >= totalMs) {
+                endGame();
+                return;
+            }
+
+            // 2. Update Total Timer Text
             const totalRemaining = Math.max(0, totalMs - totalElapsed);
-            const totalPercent = (totalRemaining / totalMs) * 264;
-            document.getElementById('total-progress').style.strokeDashoffset = 264 - totalPercent;
-            
             const trSec = Math.ceil(totalRemaining / 1000);
             document.getElementById('total-timer-text').innerText = 
                 `${String(Math.floor(trSec/60)).padStart(2,'0')}:${String(trSec%60).padStart(2,'0')}`;
 
-            // Update Color Timer
+            // 3. Update Color Flashes
             if (colorElapsed >= intervalMs) {
                 colorStartTime = now;
                 currentColorIdx = (currentColorIdx + 1) % selectedColors.length;
+                document.getElementById('play-screen').style.backgroundColor = selectedColors[currentColorIdx];
             }
             
+            // 4. Update Color Progress Circle (628 is the circumference for r=100)
             const colorRemaining = Math.max(0, intervalMs - colorElapsed);
-            const colorPercent = (colorRemaining / intervalMs) * 691;
-            document.getElementById('color-progress').style.strokeDashoffset = 691 - colorPercent;
+            const colorPercent = (colorRemaining / intervalMs) * 628;
+            document.getElementById('color-progress').style.strokeDashoffset = 628 - colorPercent;
             document.getElementById('color-timer-text').innerText = (colorRemaining / 1000).toFixed(1);
-            document.getElementById('play-screen').style.backgroundColor = selectedColors[currentColorIdx];
 
-            if (totalElapsed >= totalMs) {
-                stopGame();
-            } else {
-                requestAnimationFrame(runFrame);
-            }
+            animationFrameId = requestAnimationFrame(runFrame);
         }
 
         function stopGame() {
             gameActive = false;
-            document.getElementById('setup-screen').classList.remove('hidden');
+            cancelAnimationFrame(animationFrameId);
             document.getElementById('play-screen').classList.add('hidden');
+            document.getElementById('setup-screen').classList.remove('hidden');
+        }
+
+        function endGame() {
+            gameActive = false;
+            cancelAnimationFrame(animationFrameId);
+            
+            // Zero out timers visually
+            document.getElementById('total-timer-text').innerText = "00:00";
+            document.getElementById('color-timer-text').innerText = "0.0";
+            document.getElementById('color-progress').style.strokeDashoffset = 628;
+
+            // Show End Screen overlay
+            document.getElementById('end-screen').classList.remove('hidden');
+        }
+
+        function restartGame() {
+            document.getElementById('end-screen').classList.add('hidden');
+            startGame();
+        }
+
+        function goToSettings() {
+            document.getElementById('end-screen').classList.add('hidden');
+            document.getElementById('play-screen').classList.add('hidden');
+            document.getElementById('setup-screen').classList.remove('hidden');
         }
 
         document.getElementById('play-btn').onclick = startGame;
